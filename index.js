@@ -10,7 +10,8 @@ var UrlToImage = (function() {
     api.render = function(url, file, opts) {
         opts = _.extend({
             width: 1280,
-            height: 800
+            height: 800,
+            maxHeight: 100000
         }, opts);
 
         var def = Q.defer();
@@ -20,7 +21,8 @@ var UrlToImage = (function() {
             url,
             file,
             opts.width,
-            opts.height
+            opts.height,
+            opts.maxHeight
         ];
 
         var execOpts = {
