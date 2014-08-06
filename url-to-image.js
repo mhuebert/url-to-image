@@ -63,6 +63,11 @@ var Page = (function(opts) {
     };
 
     function renderAndExit() {
+        var height = page.evaluate(function(){
+            return document.body.offsetHeight;
+        });
+
+        page.clipRect = { top: 0, left: 0, width: opts.width, height: Math.min(height, opts.maxHeight) }
         page.render(opts.file);
         phantom.exit();
     }
@@ -84,6 +89,7 @@ function main() {
     var file = args[2];
     var width = args[3] || 1280;
     var height = args[4] || 800;
+    var maxHeight = args[5] || 1000000;
 
     var isHelp = args[1] === '-h' || args[1] === '--help';
     if (args.length === 1 || isHelp) {
@@ -97,7 +103,8 @@ function main() {
 
     var opts = {
         width: width,
-        height: height
+        height: height,
+        maxHeight: maxHeight
     };
 
     var page = Page(opts);
