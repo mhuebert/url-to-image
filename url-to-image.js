@@ -66,8 +66,9 @@ var Page = (function(opts) {
         var height = page.evaluate(function(){
             return document.body.offsetHeight;
         });
-
-        page.clipRect = { top: 0, left: 0, width: opts.width, height: Math.min(height, opts.maxHeight) }
+        if (height > opts.maxHeight) {
+           page.clipRect = { top: 0, left: 0, width: opts.width, height: opts.maxHeight }
+        }
         page.render(opts.file);
         phantom.exit();
     }
