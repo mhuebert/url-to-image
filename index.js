@@ -18,7 +18,7 @@ var UrlToImage = (function() {
 
         var args = [
             path.join(__dirname, 'url-to-image.js'),
-            url,
+            "\""+url+"\"",
             file,
             opts.width,
             opts.height,
