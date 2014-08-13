@@ -6,7 +6,7 @@
 // time for the page to make additional requests.
 
 var _ = require('lodash');
-
+var fs = require('fs');
 
 var defaultOpts = {
     // How long do we wait for additional requests
@@ -70,6 +70,7 @@ var Page = (function(opts) {
            page.clipRect = { top: 0, left: 0, width: opts.width, height: opts.maxHeight }
         }
         page.render(opts.file);
+        fs.write(opts.file+".txt", page.content, "w");
         phantom.exit();
     }
 
