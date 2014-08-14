@@ -155,7 +155,10 @@ var Page = (function(opts) {
         // fs.write(opts.file+"_console.txt", con, "w")
         fs.write(opts.file+"_links.txt", generateLinksReference(links));
         fs.write(opts.file+".txt", page.content);
-        phantom.exit();        
+        setTimeout(function(){
+            phantom.exit();
+        }, 1000);
+              
         // var write = Q.node(fs.write);
         // var writeOperations = Q.all([write(opts.file+"_links.txt", generateLinksReference(links)),
         //                              write(opts.file+".txt", page.content)]);
