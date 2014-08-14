@@ -7,6 +7,8 @@
 
 var _ = require('lodash');
 var fs = require('fs');
+var Q = require('q');
+var linkhints = require('./linkhints');
 
 var defaultOpts = {
     // How long do we wait for additional requests
@@ -63,21 +65,36 @@ var Page = (function(opts) {
     };
 
     function renderAndExit() {
-        var height = page.evaluate(function(){
-            return document.body.offsetHeight;
+        var links, height;
+        page.evaluate(function() {
+            height = document.body.offsetHeight;
+
+            var node = document.documentElement;
+            var links = linkhints.getLinksInfo(node);
+            links.forEach(linkhints.addMarker);
         });
         if (height > opts.maxHeight) {
-           page.clipRect = { top: 0, left: 0, width: opts.width, height: opts.maxHeight }
+           page.clipRect = { top: 0, left: 0, width: opts.width, height: opts.maxHeight };
         }
         page.render(opts.file);
-        fs.write(opts.file+".txt", page.content, "w");
-        phantom.exit();
+        var write = Q.node(fs.write);
+        var writeOperations = Q.all([write(opts.file+"_links.txt", generateLinksReference(links), "w"),
+                                     write(opts.file+".txt", page.content, "w")]);
+        writeOperations.then(function() {
+            phantom.exit();
+        });
     }
 
     function noop() {}
 
     return api;
 });
+
+function generateLinksReference(linkCollection) {
+    return linkCollection.map(function(link) {
+        return link.hintString + ': ' + link.href;
+    }).join("\n");
+}
 
 function die(error) {
     console.error(error);
