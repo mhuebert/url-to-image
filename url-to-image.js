@@ -8,7 +8,7 @@
 var _ = require('lodash');
 var fs = require('fs');
 var Q = require('q');
-var linkhints = require('./linkhints');
+// var linkhints = require('./linkhints');
 
 var defaultOpts = {
     // How long do we wait for additional requests
@@ -31,7 +31,7 @@ var Page = (function(opts) {
         height: opts.height
     };
     // Silence confirmation messages and errors
-    page.onConfirm = page.onPrompt = page.onError = noop;
+    // page.onConfirm = page.onPrompt = page.onError = noop;
 
     page.onResourceRequested = function(request) {
         requestCount += 1;
@@ -65,24 +65,103 @@ var Page = (function(opts) {
     };
 
     function renderAndExit() {
-        var links, height;
-        page.evaluate(function() {
-            height = document.body.offsetHeight;
+        var con = ""
+        page.onConsoleMessage = function(msg) {
+            console.log(msg)
+          con += msg;
+        };
+        page.onError = function(msg, trace) {
+          con += msg;
+          trace.forEach(function(item) {
+            con+=('  ', item.file, ':', item.line);
+          });
+        }
+        var height = page.evaluate(function() {
+            return document.body.offsetHeight;
+        });
+        var links = page.evaluate(function() {
+
+
+
+            function map(coll, func) {
+                return Array.prototype.map.call(coll, func);
+            }
+
+            function filter(coll, func) {
+                return Array.prototype.filter.call(coll, func);
+            }
+
+            function getHintString(index) {
+                // something basic for now
+                var indexInBase26 = index.toString(26);
+                var base26 =   '0123456789abcdefghijklmnop';
+                var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                return map(indexInBase26, function(character) {
+                    return alphabet[base26.indexOf(character)];
+                }).join('');
+            }
+
+            function isElementVisible(element) {
+                var computedStyle = window.getComputedStyle(element, null);
+                return (!(computedStyle.getPropertyValue('visibility') != 'visible' ||
+                          computedStyle.getPropertyValue('display') == 'none' ||
+                          computedStyle.getPropertyValue('opacity') == '0'));
+            }
+
+            function getLinksInfo(node) {
+                var links = filter(node.querySelectorAll('a'), isElementVisible);
+
+                return map(links, function(link, index) {
+                    return {
+                        element: link,
+                        bounds: link.getBoundingClientRect(),
+                        href: link.href,
+                        hintString: getHintString(index)
+                    };
+                });
+            }
+
+            function addMarker(linkInfo) {
+                var marker = document.createElement('div');
+                marker.textContent = linkInfo.hintString;
+
+                var markerStyle = marker.style;
+                markerStyle.position = 'absolute';
+                markerStyle.fontFamily = 'Comic Sans, Chalkboard, Arial, sans-serif';
+                markerStyle.fontSize= '11px';
+                markerStyle.padding = "1px 3px";
+                markerStyle.background = "yellow";
+                markerStyle.opacity = "0.7";
+                markerStyle.fontWeight = "bold";
+                markerStyle.transform = "translate(-100%, -100%)";
+                markerStyle.left = linkInfo.bounds.left-15 + "px";
+                markerStyle.top = linkInfo.bounds.top + "px";
+
+                // be visible above floating elements
+                markerStyle.zIndex = 999;
+
+                node.appendChild(marker);
+            }
 
             var node = document.documentElement;
-            var links = linkhints.getLinksInfo(node);
-            links.forEach(linkhints.addMarker);
+            var links = getLinksInfo(node);
+            links.forEach(addMarker);
+            return links
         });
         if (height > opts.maxHeight) {
            page.clipRect = { top: 0, left: 0, width: opts.width, height: opts.maxHeight };
         }
         page.render(opts.file);
-        var write = Q.node(fs.write);
-        var writeOperations = Q.all([write(opts.file+"_links.txt", generateLinksReference(links), "w"),
-                                     write(opts.file+".txt", page.content, "w")]);
-        writeOperations.then(function() {
-            phantom.exit();
-        });
+        // fs.write(opts.file+"_console.txt", con, "w")
+        fs.writeSync(opts.file+"_links.txt", generateLinksReference(links));
+        fs.writeSync(opts.file+".txt", page.content);
+        phantom.exit();        
+        // var write = Q.node(fs.write);
+        // var writeOperations = Q.all([write(opts.file+"_links.txt", generateLinksReference(links)),
+        //                              write(opts.file+".txt", page.content)]);
+        // writeOperations.then(function() {
+        //     phantom.exit();
+        // });
     }
 
     function noop() {}
