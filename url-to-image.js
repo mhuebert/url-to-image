@@ -153,8 +153,8 @@ var Page = (function(opts) {
         }
         page.render(opts.file);
         // fs.write(opts.file+"_console.txt", con, "w")
-        fs.writeSync(opts.file+"_links.txt", generateLinksReference(links));
-        fs.writeSync(opts.file+".txt", page.content);
+        fs.write(opts.file+"_links.txt", generateLinksReference(links));
+        fs.write(opts.file+".txt", page.content);
         phantom.exit();        
         // var write = Q.node(fs.write);
         // var writeOperations = Q.all([write(opts.file+"_links.txt", generateLinksReference(links)),
